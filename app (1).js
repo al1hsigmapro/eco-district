@@ -1,24 +1,8 @@
 // ===== ДАННЫЕ =====
 const data = {
-  "Алматы": [
-    "Алмалинский",
-    "Бостандыкский",
-    "Медеуский",
-    "Ауэзовский",
-    "Наурызбайский",
-    "Турксибский",
-    "Жетысуский"
-  ],
-  "Астана": [
-    "Алматы",
-    "Есиль",
-    "Сарыарка"
-  ],
-  "Шымкент": [
-    "Абайский",
-    "Аль-Фарабийский",
-    "Енбекшинский"
-  ]
+  "Алматы": ["Алмалинский","Бостандыкский","Медеуский"],
+  "Астана": ["Алматы","Есиль","Сарыарка"],
+  "Шымкент": ["Абайский","Аль-Фарабийский"]
 };
 
 // ===== ЭЛЕМЕНТЫ =====
@@ -26,7 +10,7 @@ const citySelect = document.getElementById("city-select");
 const districtSelect = document.getElementById("district-select");
 const analyzeBtn = document.getElementById("analyze-btn");
 
-// ===== ЗАПОЛНЕНИЕ ГОРОДОВ =====
+// ===== ГОРОДА =====
 Object.keys(data).forEach(city => {
   const option = document.createElement("option");
   option.value = city;
@@ -34,107 +18,69 @@ Object.keys(data).forEach(city => {
   citySelect.appendChild(option);
 });
 
-// ===== ПРИ ВЫБОРЕ ГОРОДА =====
+// ===== ВЫБОР ГОРОДА =====
 citySelect.addEventListener("change", () => {
-  const selectedCity = citySelect.value;
+  districtSelect.innerHTML = `<option value="">Ауданды таңда</option>`;
 
-  // очистка районов
-  districtSelect.innerHTML = `<option value="">— Ауданды таңдаңыз —</option>`;
-
-  if (selectedCity) {
+  if (citySelect.value) {
     districtSelect.disabled = false;
 
-    data[selectedCity].forEach(district => {
-      const option = document.createElement("option");
-      option.value = district;
-      option.textContent = district;
-      districtSelect.appendChild(option);
+    data[citySelect.value].forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d;
+      districtSelect.appendChild(opt);
     });
   } else {
     districtSelect.disabled = true;
   }
 
-  checkEnableButton();
+  check();
 });
 
-// ===== ПРИ ВЫБОРЕ РАЙОНА =====
-districtSelect.addEventListener("change", checkEnableButton);
+// ===== ВЫБОР РАЙОНА =====
+districtSelect.addEventListener("change", check);
 
-// ===== АКТИВАЦИЯ КНОПКИ =====
-function checkEnableButton() {
-  if (citySelect.value && districtSelect.value) {
-    analyzeBtn.disabled = false;
-  } else {
-    analyzeBtn.disabled = true;
-  }
+function check() {
+  analyzeBtn.disabled = !(citySelect.value && districtSelect.value);
 }
 
-// ===== КНОПКА АНАЛИЗА =====
+// ===== АНАЛИЗ =====
 analyzeBtn.addEventListener("click", () => {
-  const city = citySelect.value;
-  const district = districtSelect.value;
-
-  // показать панель
-  const panel = document.getElementById("result-panel");
-  panel.style.display = "block";
-
-  // адрес
+  document.getElementById("result-panel").style.display = "block";
   document.getElementById("result-address").textContent =
-    `${city}, ${district}`;
+    citySelect.value + ", " + districtSelect.value;
 
-  // случайный скор
-  const score = Math.floor(Math.random() * 100);
-
-  // обновление UI
+  const score = Math.floor(Math.random()*100);
   document.getElementById("score-number").textContent = score;
-
-  const ring = document.getElementById("ring-fill");
-  const offset = 314 - (314 * score) / 100;
-  ring.style.strokeDashoffset = offset;
-
-  const grade = document.getElementById("score-grade");
-
-  if (score >= 70) {
-    grade.textContent = "Жақсы";
-    grade.className = "score-grade grade-excellent";
-  } else if (score >= 40) {
-    grade.textContent = "Орташа";
-    grade.className = "score-grade grade-average";
-  } else {
-    grade.textContent = "Нашар";
-    grade.className = "score-grade grade-poor";
-  }
-
-  // критерии
-  updateBar("green", random());
-  updateBar("noise", random());
-  updateBar("exhaust", random());
-  updateBar("factories", random());
-  updateBar("waste", random());
-
-  // скролл вниз
-  panel.scrollIntoView({ behavior: "smooth" });
 });
-
-// ===== БАРЫ =====
-function updateBar(name, value) {
-  document.getElementById(`val-${name}`).textContent = value;
-  document.getElementById(`bar-${name}`).style.width = value + "%";
-}
-
-function random() {
-  return Math.floor(Math.random() * 100);
-}
 
 // ===== КАРТА =====
-const map = L.map('map').setView([43.238949, 76.889709], 11);
+const map = L.map('map').setView([48, 66], 5);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
 }).addTo(map);
 
-// маркер Алматы
-L.marker([43.238949, 76.889709])
-  .addTo(map)
-  .bindPopup("Алматы — эко рейтинг демо")
-  .openPopup();
+const cities = [
+  {name:"Алматы", coords:[43.23,76.88], score:65},
+  {name:"Астана", coords:[51.16,71.43], score:55},
+  {name:"Шымкент", coords:[42.34,69.59], score:45}
+];
+
+function getColor(s){
+  if(s>=70) return "green";
+  if(s>=40) return "orange";
+  return "red";
+}
+
+cities.forEach(c=>{
+  const marker = L.circleMarker(c.coords,{
+    radius:10,
+    color:getColor(c.score),
+    fillColor:getColor(c.score),
+    fillOpacity:0.8
+  }).addTo(map);
+
+  marker.bindPopup(`${c.name}: ${c.score}`);
+});
